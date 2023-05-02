@@ -34,11 +34,16 @@ const Step2Screen = ({ setSteps }: StepsProps) => {
       import "@openzeppelin/contracts/access/Ownable.sol";
       import "@openzeppelin/contracts/utils/math/SafeMath.sol";
       
+      interface IVerifier {
+          function verify(uint256[] calldata pubInputs, bytes calldata proof) external view returns (bool);
+      }
+      
       contract Dodug is ERC20, Ownable {
           using SafeMath for uint256;
       
           uint256 public constant CLAIM_PERIOD = 7 days;
           uint256 public claimIdCounter;
+          IVerifier public verifier;
       
           struct Claim {
               address claimant;
@@ -60,16 +65,17 @@ const Step2Screen = ({ setSteps }: StepsProps) => {
           event VerificationRequested(address indexed claimant, bytes proof);
           event VerificationSuccessful(address indexed claimant);
       
-          constructor() ERC20("Dodug", "DDG") {}
-      
-          function mint(address to, uint256 amount) public onlyOwner {
-              _mint(to, amount);
+          constructor(address verifier_address) ERC20("Dodug", "DDG") {
+              verifier = IVerifier(verifier_address);
           }
       
-          function claimTokens(uint256 amount, bytes memory proof) public {
+          function emitIncentives(uint256 amount, bytes memory proof) public {
               uint256 claimId = ++claimIdCounter;
               require(claims[claimId].timestamp == 0, "Claim already exists");
-              require(verifyZKProof(msg.sender, proof), "Invalid ZK proof");
+      
+              uint256[] memory pubInputs = new uint256[](1);
+              pubInputs[0] = uint256(msg.sender);
+              require(verifier.verify(pubInputs, proof), "Invalid ZK proof");
       
               claims[claimId] = Claim(
                   msg.sender,
@@ -121,265 +127,7 @@ const Step2Screen = ({ setSteps }: StepsProps) => {
               delete claims[claimId];
               _mint(msg.sender, amount);
           }
-      
-          function verifyZKProof(
-              address user,
-              bytes memory proof
-          ) internal returns (bool) {
-              // ZK verification - To be implemented
-              emit VerificationRequested(user, proof);
-              return true;
-          }
       }
-      
-      `,
-    },
-    {
-      name: "Dodug ERC721",
-      code: `
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
-
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-
-contract Dodug is ERC721, Ownable {
-    using Counters for Counters.Counter;
-    using SafeMath for uint256;
-
-    uint256 public constant CLAIM_PERIOD = 7 days;
-    Counters.Counter private _tokenIdCounter;
-    uint256 private _claimIdCounter;
-
-    struct Claim {
-        address claimant;
-        uint256 amount;
-        uint256 timestamp;
-        bool contested;
-        uint256 claimId;
-        uint256 tokenId;
-    }
-
-    mapping(uint256 => Claim) public claims;
-    mapping(address => bool) public verified;
-
-    event Claimed(
-        address indexed claimant,
-        uint256 amount,
-        uint256 claimId,
-        uint256 tokenId
-    );
-    event Contested(address indexed claimant, uint256 claimId);
-    event ContestValidated(
-        address indexed claimant,
-        uint256 claimId,
-        uint256 amount
-    );
-    event VerificationRequested(address indexed claimant, bytes proof);
-    event VerificationSuccessful(address indexed claimant);
-
-    constructor() ERC721("Dodug", "DDG") {}
-
-    function safeMint(address to) public onlyOwner {
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
-        _safeMint(to, tokenId);
-    }
-
-    function claimTokens(
-        uint256 tokenId,
-        uint256 amount,
-        bytes memory proof
-    ) public {
-        require(
-            ownerOf(tokenId) == msg.sender,
-            "Only the token owner can claim tokens"
-        );
-        uint256 claimId = ++_claimIdCounter;
-        require(claims[claimId].timestamp == 0, "Claim already exists");
-        require(verifyZKProof(msg.sender, proof), "Invalid ZK proof");
-
-        claims[claimId] = Claim(
-            msg.sender,
-            amount,
-            block.timestamp,
-            false,
-            claimId,
-            tokenId
-        );
-        emit Claimed(msg.sender, amount, claimId, tokenId);
-    }
-
-    function contestClaim(uint256 claimId) public {
-        require(claims[claimId].timestamp != 0, "Claim does not exist");
-        require(!claims[claimId].contested, "Claim already contested");
-        require(
-            block.timestamp <= claims[claimId].timestamp.add(CLAIM_PERIOD),
-            "Contest period is over"
-        );
-
-        claims[claimId].contested = true;
-        emit Contested(claims[claimId].claimant, claimId);
-    }
-
-    function validateContest(uint256 claimId, bool isValid) public onlyOwner {
-        require(claims[claimId].timestamp != 0, "Claim does not exist");
-        require(claims[claimId].contested, "Claim not contested");
-
-        if (isValid) {
-            uint256 amount = claims[claimId].amount;
-            delete claims[claimId];
-            emit ContestValidated(msg.sender, claimId, amount);
-            _mint(msg.sender, claims[claimId].tokenId);
-        } else {
-            claims[claimId].contested = false;
-            claims[claimId].timestamp = block.timestamp;
-        }
-    }
-
-    function withdrawClaim(uint256 claimId) public {
-        require(claims[claimId].timestamp != 0, "Claim does not exist");
-        require(!claims[claimId].contested, "Claim is contested");
-        require(
-            block.timestamp > claims[claimId].timestamp.add(CLAIM_PERIOD),
-            "Claim period not over"
-        );
-
-        uint256 tokenId = claims[claimId].tokenId;
-        address tokenOwner = ownerOf(tokenId);
-        require(
-            tokenOwner == msg.sender,
-            "Only the token owner can withdraw claim"
-        );
-
-        uint256 amount = claims[claimId].amount;
-        delete claims[claimId];
-        _mint(msg.sender, tokenId);
-        _mint(tokenOwner, amount);
-    }
-
-    function setVerificationStatus(address user, bool status) public onlyOwner {
-        verified[user] = status;
-    }
-
-    function verifyZKProof(
-        address user,
-        bytes memory proof
-    ) internal returns (bool) {
-        // ZK verification - To be implemented
-        emit VerificationRequested(user, proof);
-        return true;
-    }
-}
-      `,
-    },
-    {
-      name: "Dodug Rewards",
-      code: `
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
-
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "./DodugToken.sol"; // assuming that you have a ERC20 token contract called DodugToken.sol
-
-contract DodugRewards is Ownable {
-    using SafeMath for uint256;
-
-    uint256 public constant CLAIM_PERIOD = 7 days;
-    Dodug private _dodugToken;
-    mapping(address => bool) public verified;
-
-    struct RewardClaim {
-        address claimant;
-        uint256 amount;
-        uint256 timestamp;
-        bool contested;
-    }
-
-    mapping(address => RewardClaim) public claims;
-
-    event RewardClaimed(address indexed claimant, uint256 amount);
-    event RewardContested(address indexed claimant);
-    event RewardContestValidated(address indexed claimant, uint256 amount);
-    event RewardVerificationRequested(address indexed claimant, bytes proof);
-    event RewardVerificationSuccessful(address indexed claimant);
-
-    constructor(address dodugToken) {
-        _dodugToken = Dodug(dodugToken);
-    }
-
-    function claimReward(uint256 amount, bytes memory proof) public {
-        require(claims[msg.sender].timestamp == 0, "Claim already exists");
-        require(verifyZKProof(msg.sender, proof), "Invalid ZK proof");
-
-        claims[msg.sender] = RewardClaim(
-            msg.sender,
-            amount,
-            block.timestamp,
-            false
-        );
-        emit RewardClaimed(msg.sender, amount);
-    }
-
-    function contestReward() public {
-        RewardClaim storage claim = claims[msg.sender];
-        require(claim.timestamp != 0, "Claim does not exist");
-        require(!claim.contested, "Claim already contested");
-        require(
-            block.timestamp <= claim.timestamp.add(CLAIM_PERIOD),
-            "Contest period is over"
-        );
-
-        claim.contested = true;
-        emit RewardContested(msg.sender);
-    }
-
-    function validateRewardContest(bool isValid) public onlyOwner {
-        RewardClaim storage claim = claims[msg.sender];
-        require(claim.timestamp != 0, "Claim does not exist");
-        require(claim.contested, "Claim not contested");
-
-        if (isValid) {
-            uint256 amount = claim.amount;
-            delete claims[msg.sender];
-            emit RewardContestValidated(msg.sender, amount);
-            _dodugToken.mint(msg.sender, amount);
-        } else {
-            claim.contested = false;
-            claim.timestamp = block.timestamp;
-        }
-    }
-
-    function withdrawReward() public {
-        RewardClaim storage claim = claims[msg.sender];
-        require(claim.timestamp != 0, "Claim does not exist");
-        require(!claim.contested, "Claim is contested");
-        require(
-            block.timestamp > claim.timestamp.add(CLAIM_PERIOD),
-            "Claim period not over"
-        );
-
-        uint256 amount = claim.amount;
-        delete claims[msg.sender];
-        _dodugToken.transfer(msg.sender, amount);
-    }
-
-    function setVerificationStatus(address user, bool status) public onlyOwner {
-        verified[user] = status;
-    }
-
-    function verifyZKProof(
-        address user,
-        bytes memory proof
-    ) internal returns (bool) {
-        // ZK verification - To be implemented
-        emit RewardVerificationRequested(user, proof);
-        return true;
-    }
-}
       `,
     },
   ]);
