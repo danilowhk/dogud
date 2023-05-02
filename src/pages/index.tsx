@@ -8,6 +8,7 @@ import Logo from "../../public/logo-dogud.jpeg";
 
 export default function Home() {
   const [steps, setSteps] = useState(1);
+
   return (
     <main className="flex bg-[conic-gradient(at_top,_var(--tw-gradient-stops))] from-gray-700 via-gray-900 to-black h-full flex-col min-h-screen justify-center">
       <div className="flex justify-center pb-5">

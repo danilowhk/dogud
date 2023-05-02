@@ -1,11 +1,14 @@
 import React, { useState } from "react";
 import CodeSnippet from "../CodeSnippet";
 import axios from "axios";
+import Spinner from "../Spinner";
 
 const Step3Screen = () => {
   const [proofResponse, setProofResponse] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleProofClick = async () => {
+    setIsLoading(true);
     const responseOnnxFile = await axios.post("/api/readOnnxFile");
     const onixSendData = {
       project_name: "test_project",
@@ -34,9 +37,11 @@ const Step3Screen = () => {
       });
       const data = await response.data;
       setProofResponse(JSON.stringify(data, null, 2));
+      setIsLoading(false);
     } catch (error) {
       console.error("Error fetching proof:", error);
       setProofResponse("Error fetching proof");
+      setIsLoading(false);
     }
   };
 
@@ -47,10 +52,12 @@ const Step3Screen = () => {
           Zero Knowledge Proof
         </h2>
         <button
-          onClick={handleProofClick}
-          className="bg-gradient-to-r w-[200px] from-green-300 to-blue-300 text-white font-semibold py-2 px-4 rounded-md mb-4"
+          onClick={() => handleProofClick()}
+          className={
+            "flex bg-gradient-to-r justify-center from-green-300 via-blue-500 to-purple-600 text-white font-[600] uppercase rounded-[12px] p-3 w-[200px]"
+          }
         >
-          Proof
+          {isLoading ? <Spinner /> : "PROVE"}
         </button>
         {proofResponse && <CodeSnippet code={proofResponse} />}
       </div>
