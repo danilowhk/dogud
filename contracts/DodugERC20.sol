@@ -5,11 +5,16 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
+interface IVerifier {
+    function verify(uint256[] calldata pubInputs, bytes calldata proof) external view returns (bool);
+}
+
 contract Dodug is ERC20, Ownable {
     using SafeMath for uint256;
 
     uint256 public constant CLAIM_PERIOD = 7 days;
     uint256 public claimIdCounter;
+    IVerifier public verifier;
 
     struct Claim {
         address claimant;
@@ -31,16 +36,17 @@ contract Dodug is ERC20, Ownable {
     event VerificationRequested(address indexed claimant, bytes proof);
     event VerificationSuccessful(address indexed claimant);
 
-    constructor() ERC20("Dodug", "DDG") {}
-
-    function mint(address to, uint256 amount) public onlyOwner {
-        _mint(to, amount);
+    constructor(address verifier_address) ERC20("Dodug", "DDG") {
+        verifier = IVerifier(verifier_address);
     }
 
-    function claimTokens(uint256 amount, bytes memory proof) public {
+    function emitIncentives(uint256 amount, bytes memory proof) public {
         uint256 claimId = ++claimIdCounter;
         require(claims[claimId].timestamp == 0, "Claim already exists");
-        require(verifyZKProof(msg.sender, proof), "Invalid ZK proof");
+
+        uint256[] memory pubInputs = new uint256[](1);
+        pubInputs[0] = uint256(msg.sender);
+        require(verifier.verify(pubInputs, proof), "Invalid ZK proof");
 
         claims[claimId] = Claim(
             msg.sender,
