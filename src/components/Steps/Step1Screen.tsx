@@ -42,10 +42,7 @@ const Step1Screen = ({ setSteps }: StepsProps) => {
       echo_data: {
         input_shapes: [[3, 1, 1]],
         input_data: [
-          [
-            0.011350071988999844, 0.03404385969042778,
-            0.04626564309000969,
-          ],
+          [0.011350071988999844, 0.03404385969042778, 0.04626564309000969],
         ],
         output_data: [
           [
@@ -105,16 +102,12 @@ const Step1Screen = ({ setSteps }: StepsProps) => {
       try {
         // // Check if a user's wallet is connected
         if (!window.ethereum) {
-          alert(
-            "Please install MetaMask or another Ethereum wallet provider"
-          );
+          alert("Please install MetaMask or another Ethereum wallet provider");
           return;
         }
 
         if (isConnected === false) {
-          alert(
-            "Please install MetaMask or another Ethereum wallet provider"
-          );
+          alert("Please install MetaMask or another Ethereum wallet provider");
           return;
         }
 
@@ -140,10 +133,7 @@ const Step1Screen = ({ setSteps }: StepsProps) => {
 
         // Wait for the contract to be mined
         await contract.deployed();
-        console.log(
-          "Contract deployed at address:",
-          contract.address
-        );
+        console.log("Contract deployed at address:", contract.address);
         setContractDeployed(contract.address);
 
         setIsDeploying(false);
@@ -189,9 +179,7 @@ const Step1Screen = ({ setSteps }: StepsProps) => {
           )}
         </div>
         <ConnectButton showBalance={false} />
-        {contractEZKL.length > 10 && (
-          <CodeSnippet code={contractEZKL} />
-        )}
+        {contractEZKL.length > 10 && <CodeSnippet code={contractEZKL} />}
 
         {contractDeployed.length > 2 ? (
           <h3 className="text-white">✅ DEPLOYED</h3>
