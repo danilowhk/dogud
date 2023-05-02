@@ -10,7 +10,7 @@ export default function Home() {
     <main className="flex bg-[conic-gradient(at_top,_var(--tw-gradient-stops))] from-gray-700 via-gray-900 to-black h-full flex-col min-h-screen justify-center">
       <div className="flex flex-col relative h-full items-center justify-center border-4 border-white mx-20 p-10 rounded-[30px]">
         <StepFollow steps={steps} />
-        {steps === 1 && <Step1Screen setSteps={setSteps} />}
+        {steps === 1 && <Step2Screen setSteps={setSteps} />}
         {steps === 2 && <Step2Screen setSteps={setSteps} />}
         {steps === 3 && <Step3Screen setSteps={setSteps} />}
       </div>
