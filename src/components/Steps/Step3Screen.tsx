@@ -1,20 +1,38 @@
 import React, { useState } from "react";
 import CodeSnippet from "../CodeSnippet";
+import axios from "axios";
 
-interface StepsProps {
-  setSteps: (x: number) => void;
-}
-
-const Step3Screen: React.FC<StepsProps> = ({ setSteps }) => {
+const Step3Screen = () => {
   const [proofResponse, setProofResponse] = useState("");
 
   const handleProofClick = async () => {
-    // Replace this URL with the actual API endpoint you're using
-    const apiURL = "https://example.com/api/zk-proof";
+    const responseOnnxFile = await axios.post("/api/readOnnxFile");
+    const onixSendData = {
+      project_name: "test_project",
+      echo_data: {
+        input_shapes: [[3, 1, 1]],
+        input_data: [
+          [
+            0.011350071988999844, 0.03404385969042778,
+            0.04626564309000969,
+          ],
+        ],
+        output_data: [
+          [
+            -0.36590576171875, -0.36590576171875, -0.36590576171875,
+            -0.36590576171875, -0.3919677734375, -0.36590576171875,
+            -0.36590576171875, -0.36590576171875, -0.36590576171875,
+          ],
+        ],
+      },
+      onnx_file_data: responseOnnxFile.data.base64,
+    };
 
     try {
-      const response = await fetch(apiURL);
-      const data = await response.json();
+      const response = await axios.post("/api/prove", {
+        onixSendData,
+      });
+      const data = await response.data;
       setProofResponse(JSON.stringify(data, null, 2));
     } catch (error) {
       console.error("Error fetching proof:", error);
@@ -23,25 +41,19 @@ const Step3Screen: React.FC<StepsProps> = ({ setSteps }) => {
   };
 
   return (
-    <div className="flex h-[70vh] gap-10 flex-col items-center justify-between py-10">
+    <div className="flex h-[70vh] w-full gap-10 flex-col items-center justify-between py-10">
       <div className="w-full flex flex-col items-center">
         <h2 className="text-xl font-bold text-white mb-4">
           Zero Knowledge Proof
         </h2>
         <button
           onClick={handleProofClick}
-          className="bg-gradient-to-r from-green-300 to-blue-300 text-white font-semibold py-2 px-4 rounded-md mb-4"
+          className="bg-gradient-to-r w-[200px] from-green-300 to-blue-300 text-white font-semibold py-2 px-4 rounded-md mb-4"
         >
           Proof
         </button>
         {proofResponse && <CodeSnippet code={proofResponse} />}
       </div>
-      <button
-        onClick={() => setSteps(4)}
-        className="bg-gradient-to-r from-green-300 via-blue-500 to-purple-600 text-white font-[600] uppercase rounded-[12px] p-3 w-[200px]"
-      >
-        Next Step
-      </button>
     </div>
   );
 };

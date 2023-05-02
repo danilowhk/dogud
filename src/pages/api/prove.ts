@@ -1,38 +1,12 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from "next";
 import axios, { AxiosError } from "axios";
-import fs from "fs";
-import path from "path";
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    const filePath = path.join(
-      process.cwd(),
-      "./contracts/network.onnx"
-    );
-    const fileContent = fs.readFileSync(filePath, "utf8");
+    const { onixSendData } = req.body;
 
-    const onixSendData = {
-      project_name: "test_project",
-      echo_data: {
-        input_shapes: [[3, 1, 1]],
-        input_data: [
-          [
-            0.011350071988999844, 0.03404385969042778,
-            0.04626564309000969,
-          ],
-        ],
-        output_data: [
-          [
-            -0.36590576171875, -0.36590576171875, -0.36590576171875,
-            -0.36590576171875, -0.3919677734375, -0.36590576171875,
-            -0.36590576171875, -0.36590576171875, -0.36590576171875,
-          ],
-        ],
-      },
-      onnx_file_data: fileContent,
-    };
-
+    console.log(onixSendData);
     const response = await axios.post(
       "https://ezkl-framework-server.herokuapp.com/prove",
       onixSendData
