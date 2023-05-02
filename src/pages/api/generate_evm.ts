@@ -13,10 +13,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     );
 
     if (response.data) {
-      const filePath = path.resolve(
-        "./contracts",
-        "ContractEZKL.sol"
-      );
+      const filePath = path.resolve("./contracts", "ContractEZKL.sol");
 
       fs.writeFileSync(filePath, response.data);
     }
@@ -34,9 +31,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     } else if (axiosError.request) {
       // The request was made, but no response was received
       console.error("Error request:", axiosError.request);
-      res
-        .status(500)
-        .json({ error: "No response received from the server." });
+      res.status(500).json({ error: "No response received from the server." });
     } else {
       // Something happened in setting up the request that triggered an Error
       console.error("Error message:", axiosError.message);
