@@ -98,13 +98,4 @@ contract Dodug is ERC20, Ownable {
         delete claims[claimId];
         _mint(msg.sender, amount);
     }
-
-    function verifyZKProof(
-        address user,
-        bytes memory proof
-    ) internal returns (bool) {
-        // ZK verification - To be implemented
-        emit VerificationRequested(user, proof);
-        return true;
-    }
 }
