@@ -42,7 +42,10 @@ const Step1Screen = ({ setSteps }: StepsProps) => {
       echo_data: {
         input_shapes: [[3, 1, 1]],
         input_data: [
-          [0.011350071988999844, 0.03404385969042778, 0.04626564309000969],
+          [
+            0.011350071988999844, 0.03404385969042778,
+            0.04626564309000969,
+          ],
         ],
         output_data: [
           [
@@ -55,19 +58,23 @@ const Step1Screen = ({ setSteps }: StepsProps) => {
       onnx_file_data: onnxBase64,
     };
 
+    const generateResponse = await axios.post("/api/generate_evm", {
+      onixSendData: onixSendData,
+    });
+
+    if (generateResponse.status !== 200) {
+      console.log("ERROR TO GENERATE EVM CONTRACT");
+      setIsLoading(false);
+      return setError(true);
+    }
+
+    setContractEZKL(generateResponse.data);
     await axios
-      .post("/api/generate_evm", { onixSendData: onixSendData })
-      .then((res) => {
-        if (res.status === 200) {
-          setContractEZKL(res.data);
-          return setIsLoading(false);
-        }
-        console.log(res);
-      })
-      .catch((err) => {
-        console.log("ERROr", err);
-        setError(true);
-      });
+      .post("/api/addContract", { content: generateResponse.data })
+      .then((res) => console.log("CONTRACT SAVED ON SB", res.data))
+      .catch((err) => console.log("ERROR TO SAVE IN SB", err));
+
+    setIsLoading(false);
   };
 
   const handleClickCompile = async () => {
@@ -102,12 +109,16 @@ const Step1Screen = ({ setSteps }: StepsProps) => {
       try {
         // // Check if a user's wallet is connected
         if (!window.ethereum) {
-          alert("Please install MetaMask or another Ethereum wallet provider");
+          alert(
+            "Please install MetaMask or another Ethereum wallet provider"
+          );
           return;
         }
 
         if (isConnected === false) {
-          alert("Please install MetaMask or another Ethereum wallet provider");
+          alert(
+            "Please install MetaMask or another Ethereum wallet provider"
+          );
           return;
         }
 
@@ -133,7 +144,10 @@ const Step1Screen = ({ setSteps }: StepsProps) => {
 
         // Wait for the contract to be mined
         await contract.deployed();
-        console.log("Contract deployed at address:", contract.address);
+        console.log(
+          "Contract deployed at address:",
+          contract.address
+        );
         setContractDeployed(contract.address);
 
         setIsDeploying(false);
@@ -179,7 +193,9 @@ const Step1Screen = ({ setSteps }: StepsProps) => {
           )}
         </div>
         <ConnectButton showBalance={false} />
-        {contractEZKL.length > 10 && <CodeSnippet code={contractEZKL} />}
+        {contractEZKL.length > 10 && (
+          <CodeSnippet code={contractEZKL} />
+        )}
 
         {contractDeployed.length > 2 ? (
           <h3 className="text-white">✅ DEPLOYED</h3>

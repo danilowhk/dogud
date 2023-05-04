@@ -1,22 +1,18 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from "next";
 import axios, { AxiosError } from "axios";
-import fs from "fs";
-import path from "path";
+import { createServerSupabaseClient } from "@supabase/auth-helpers-nextjs";
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
+  // const supabase = createServerSupabaseClient({ req, res });
   try {
     const { onixSendData } = req.body;
+
     const response = await axios.post(
       "https://ezkl-framework-server.herokuapp.com/generate_evm_contract",
       onixSendData
     );
 
-    if (response.data) {
-      const filePath = path.resolve("./contracts", "ContractEZKL.sol");
-
-      fs.writeFileSync(filePath, response.data);
-    }
     res.status(200).json(response.data);
   } catch (error) {
     const axiosError = error as AxiosError;
@@ -31,7 +27,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     } else if (axiosError.request) {
       // The request was made, but no response was received
       console.error("Error request:", axiosError.request);
-      res.status(500).json({ error: "No response received from the server." });
+      res
+        .status(500)
+        .json({ error: "No response received from the server." });
     } else {
       // Something happened in setting up the request that triggered an Error
       console.error("Error message:", axiosError.message);
